@@ -1,5 +1,4 @@
 # Zalo10Headless
-Service headless của Zalo10: giữ WebSocket Zalo khi app UI đã đóng hẳn để vẫn nhận tin
-và đẩy vào BlackBerry Hub. Dùng lại `ZaloService` của project `Zalo10` (`../Zalo10/src`),
-nên hai project phải nằm cạnh nhau. UI mở thì service nhường WebSocket (xem `src/ServiceHandoff.hpp`
-trong project Zalo10). Đóng gói chung vào .bar của Zalo10 (xem bar-descriptor.xml của Zalo10).
+Zalo10's headless service: keeps the Zalo WebSocket running even when the app UI is completely closed so you can still receive messages
+and push them into BlackBerry Hub. Reuses `ZaloService` from the `Zalo10` project (`../Zalo10/src`),
+so the two projects need to be next to each other. When the UI is open, the service hands over the WebSocket (see `src/ServiceHandoff.hpp` in the Zalo10 project). Packaged together into Zalo10's .bar (see Zalo10's bar-descriptor.xml).
