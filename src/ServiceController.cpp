@@ -1,6 +1,8 @@
 #include "ServiceController.hpp"
 #include "ZaloService.hpp"
 #include "ServiceHandoff.hpp"
+#include "HubIntegration.hpp"
+#include "ZaloServiceUtils.hpp"
 
 #include <bb/system/InvokeManager>
 #include <bb/system/InvokeRequest>
@@ -42,6 +44,32 @@ ServiceController::ServiceController(QObject *parent)
 void ServiceController::onInvoked(const bb::system::InvokeRequest &request)
 {
     qDebug() << "[Service] invoked, action =" << request.action();
+
+    // ===== Hub -> service (account target = service) =====
+    // Mọi invoke của Hub (short-tap, long-press, select more, nút Delete) giờ
+    // đều tới service để các lệnh item xử lý NỀN, không bật UI lên.
+    //  - Mark read/unread, Delete: xử lý ngay tại service.
+    //  - Open/View (chạm mở tin): chuyển tiếp nguyên vẹn sang UI.
+    if (HubIntegration::isItemAction(request.action())) {
+        QVariantMap attrs = jsonToMap(request.data()).value("attributes").toMap();
+        QString threadId = attrs.value("sourceId").toString();
+        if (threadId.isEmpty()) threadId = attrs.value("messageid").toString();
+        qDebug() << "[Service] hub item action" << request.action() << "thread=" << threadId;
+        m_svc->handleHubAction(request.action(), threadId);
+        return;
+    }
+    if (request.action() == QLatin1String("bb.action.OPEN")
+        || request.action() == QLatin1String("bb.action.VIEW")) {
+        bb::system::InvokeRequest fwd;
+        fwd.setTarget("com.BerryLife.Zalo10.invoke");
+        fwd.setAction(request.action());
+        fwd.setMimeType(request.mimeType());
+        fwd.setUri(request.uri());
+        fwd.setData(request.data());
+        m_invoke->invoke(fwd);
+        qDebug() << "[Service] forwarded" << request.action() << "to UI";
+        return;
+    }
     evaluate(); // STARTED / UI_OPENED / UI_CLOSED đều chỉ cần đánh giá lại trạng thái
 }
 

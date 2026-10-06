@@ -8,6 +8,7 @@
 //     std::terminate() cả process.
 //  3. Khoá singleton bằng fcntl: không bao giờ có 2 service cùng giữ session/WS.
 #include "ServiceController.hpp"
+#include "ZaloServiceUtils.hpp"
 
 #include <bb/Application>
 
@@ -157,6 +158,8 @@ static bool acquireSingleInstanceLock()
 
 Q_DECL_EXPORT int main(int argc, char **argv)
 {
+    // QtScript segfault trong process headless -> toàn bộ JSON của ZaloService đi qua parser viết tay.
+    ZJson::nativeMode() = true;
     qInstallMsgHandler(serviceMessageHandler);
     qDebug() << "[Service] OpenSSL:" << SSLeay_version(SSLEAY_VERSION);
 
