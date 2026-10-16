@@ -1,4 +1,4 @@
-#include "ZaloService.hpp"
+#include "core/ZaloService.hpp"
 
 void ZaloService::pickContact(const QString &) {}
 void ZaloService::onContactPickerCanceled() {}

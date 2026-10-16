@@ -3,9 +3,9 @@
 // Safeguards: bb::Application (not QCoreApplication); notify() wrapped in try/catch so a slot
 // exception (e.g. bad_alloc) doesn't terminate the process; fcntl singleton lock so two
 // services never share a session.
-#include "ServiceController.hpp"
-#include "ZaloServiceUtils.hpp"
-#include "LogSanitizer.hpp"
+#include "core/ServiceController.hpp"
+#include "utils/ZaloServiceUtils.hpp"
+#include "utils/LogSanitizer.hpp"
 
 #include <bb/Application>
 

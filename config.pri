@@ -32,11 +32,11 @@ simulator {
 
 config_pri_source_group1 {
     SOURCES += \
-        $$quote($$BASEDIR/src/ContactPickerStub.cpp) \
-        $$quote($$BASEDIR/src/ServiceController.cpp) \
+        $$quote($$BASEDIR/src/core/ContactPickerStub.cpp) \
+        $$quote($$BASEDIR/src/core/ServiceController.cpp) \
         $$quote($$BASEDIR/src/main.cpp)
 
-    HEADERS += $$quote($$BASEDIR/src/ServiceController.hpp)
+    HEADERS += $$quote($$BASEDIR/src/core/ServiceController.hpp)
 }
 
 CONFIG += precompile_header
@@ -49,7 +49,12 @@ lupdate_inclusion {
         $$quote($$BASEDIR/../src/*.c++) \
         $$quote($$BASEDIR/../src/*.cc) \
         $$quote($$BASEDIR/../src/*.cpp) \
-        $$quote($$BASEDIR/../src/*.cxx)
+        $$quote($$BASEDIR/../src/*.cxx) \
+        $$quote($$BASEDIR/../src/core/*.c) \
+        $$quote($$BASEDIR/../src/core/*.c++) \
+        $$quote($$BASEDIR/../src/core/*.cc) \
+        $$quote($$BASEDIR/../src/core/*.cpp) \
+        $$quote($$BASEDIR/../src/core/*.cxx)
 
     HEADERS += \
         $$quote($$BASEDIR/../src/*.h) \

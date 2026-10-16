@@ -1,8 +1,8 @@
-#include "ServiceController.hpp"
-#include "ZaloService.hpp"
-#include "ServiceHandoff.hpp"
-#include "HubIntegration.hpp"
-#include "ZaloServiceUtils.hpp"
+#include "core/ServiceController.hpp"
+#include "core/ZaloService.hpp"
+#include "core/ServiceHandoff.hpp"
+#include "core/HubIntegration.hpp"
+#include "utils/ZaloServiceUtils.hpp"
 
 #include <bb/system/InvokeManager>
 #include <bb/system/InvokeRequest>

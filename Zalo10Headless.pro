@@ -24,33 +24,33 @@ INCLUDEPATH += src $$UI_SRC $$UI_SRC/third_party/webp/include
 INCLUDEPATH += $$(QNX_TARGET)/usr/include/qt4/QtGui
 
 HEADERS += \
-    src/ServiceController.hpp \
-    $$UI_SRC/ServiceHandoff.hpp \
-    $$UI_SRC/LogSanitizer.hpp \
-    $$UI_SRC/ZaloNetworkManager.hpp \
-    $$UI_SRC/PhoneSyncCore.hpp \
-    $$UI_SRC/ZaloCookieJar.hpp \
-    $$UI_SRC/ZaloService.hpp \
-    $$UI_SRC/ZaloServiceUtils.hpp \
-    $$UI_SRC/HubIntegration.hpp
+    src/core/ServiceController.hpp \
+    $$UI_SRC/core/ServiceHandoff.hpp \
+    $$UI_SRC/utils/LogSanitizer.hpp \
+    $$UI_SRC/utils/ZaloNetworkManager.hpp \
+    $$UI_SRC/core/PhoneSyncCore.hpp \
+    $$UI_SRC/utils/ZaloCookieJar.hpp \
+    $$UI_SRC/core/ZaloService.hpp \
+    $$UI_SRC/utils/ZaloServiceUtils.hpp \
+    $$UI_SRC/core/HubIntegration.hpp
 
 SOURCES += \
     src/main.cpp \
-    src/ServiceController.cpp \
-    src/ContactPickerStub.cpp \
-    $$UI_SRC/ZaloService.cpp \
-    $$UI_SRC/ZaloService_Auth.cpp \
-    $$UI_SRC/ZaloService_WebSocket.cpp \
-    $$UI_SRC/ZaloService_Contacts.cpp \
-    $$UI_SRC/ZaloService_Messages.cpp \
-    $$UI_SRC/ZaloService_Crypto.cpp \
-    $$UI_SRC/ZaloService_Network.cpp \
-    $$UI_SRC/ZaloService_Db.cpp \
-    $$UI_SRC/ZaloService_Sync.cpp \
-    $$UI_SRC/ZaloService_PhoneSync.cpp \
-    $$UI_SRC/PhoneSyncCore.cpp \
+    src/core/ServiceController.cpp \
+    src/core/ContactPickerStub.cpp \
+    $$UI_SRC/core/ZaloService.cpp \
+    $$UI_SRC/core/ZaloService_Auth.cpp \
+    $$UI_SRC/core/ZaloService_WebSocket.cpp \
+    $$UI_SRC/core/ZaloService_Contacts.cpp \
+    $$UI_SRC/core/ZaloService_Messages.cpp \
+    $$UI_SRC/core/ZaloService_Crypto.cpp \
+    $$UI_SRC/core/ZaloService_Network.cpp \
+    $$UI_SRC/core/ZaloService_Db.cpp \
+    $$UI_SRC/core/ZaloService_Sync.cpp \
+    $$UI_SRC/core/ZaloService_PhoneSync.cpp \
+    $$UI_SRC/core/PhoneSyncCore.cpp \
     $$UI_SRC/third_party/xz/xz_crc32.c \
     $$UI_SRC/third_party/xz/xz_crc64.c \
     $$UI_SRC/third_party/xz/xz_dec_stream.c \
     $$UI_SRC/third_party/xz/xz_dec_lzma2.c \
-    $$UI_SRC/HubIntegration.cpp
+    $$UI_SRC/core/HubIntegration.cpp
