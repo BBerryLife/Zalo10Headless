@@ -1,10 +1,10 @@
-# Zalo10Headless — service headless nhận thông báo khi app đã đóng hẳn (xem README.md).
-# Đặt cạnh project UI: <workspace>/Zalo10/ (có src/) và <workspace>/Zalo10Headless/ (thư mục này).
+# Headless service that receives notifications while the UI app is closed. Expects
+# <workspace>/Zalo10/ (with src/) next to this project.
 APP_NAME = Zalo10Headless
 
 CONFIG += qt warn_on
 CONFIG -= cascades10
-# QtGui chỉ để dùng QImage trong ZaloService (không tạo QApplication/widget).
+# QtGui only for QImage in ZaloService (no QApplication/widgets).
 QT += network script gui
 
 UI_SRC = ../Zalo10/src
@@ -12,20 +12,22 @@ UI_SRC = ../Zalo10/src
 LIBS += -lbbsystem -lbb -lbbplatform -lbbdevice -lbbpim -lunifieddatasourcec
 LIBS += -lQtNetwork -lQtScript -lQtGui
 LIBS += -lssl -lcrypto -lsqlite3
-LIBS += -lsocket   # PhoneSyncCore::httpsGet dùng socket POSIX trực tiếp
-# zlib: ZaloService_WebSocket.cpp dùng inflate*/deflate*. App UI có libz qua -lbbcascades,
-# service không link Cascades nên phải khai báo tường minh.
+LIBS += -lsocket   # POSIX sockets used directly by PhoneSyncCore::httpsGet
+# zlib must be explicit: ZaloService_WebSocket.cpp uses inflate*/deflate*, and the service
+# doesn't link Cascades (which provides libz for the UI).
 LIBS += -lz
 LIBS += -L$$PWD/$$UI_SRC/third_party/webp/lib -lwebpdecoder
 
 INCLUDEPATH += src $$UI_SRC $$UI_SRC/third_party/webp/include
 
-# src/third_party/xz (vendored trong Zalo10): biên dịch ở chế độ C mặc định của qcc, không cần -std=gnu99
+# src/third_party/xz is vendored in Zalo10; built in qcc's default C mode, no -std=gnu99.
 INCLUDEPATH += $$(QNX_TARGET)/usr/include/qt4/QtGui
 
 HEADERS += \
     src/ServiceController.hpp \
     $$UI_SRC/ServiceHandoff.hpp \
+    $$UI_SRC/LogSanitizer.hpp \
+    $$UI_SRC/ZaloNetworkManager.hpp \
     $$UI_SRC/PhoneSyncCore.hpp \
     $$UI_SRC/ZaloCookieJar.hpp \
     $$UI_SRC/ZaloService.hpp \

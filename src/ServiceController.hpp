@@ -7,7 +7,6 @@ class QTimer;
 class ZaloService;
 namespace bb { namespace system { class InvokeManager; class InvokeRequest; } }
 
-// Điều phối service headless: giữ WebSocket khi UI KHÔNG chạy, nhường khi UI chạy.
 class ServiceController : public QObject
 {
     Q_OBJECT
@@ -29,8 +28,8 @@ private:
     QTimer      *m_poll;
     QTimer      *m_heartbeat;
     bb::system::InvokeManager *m_invoke;
-    bool m_active;       // service đang giữ realtime
-    bool m_sessionDead;  // phiên hết hạn / chưa đăng nhập: không retry cho tới khi UI chạy rồi đóng
+    bool m_active;
+    bool m_sessionDead;
     bool m_lastUiAlive;
 };
 

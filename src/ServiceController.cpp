@@ -10,8 +10,6 @@
 #include <QCoreApplication>
 #include <QDebug>
 
-// Chu kỳ poll file PID của UI. Đủ ngắn để nhận lại WS nhanh sau khi UI đóng,
-// đủ thưa để không đáng kể về pin (so với ping WS 25s).
 static const int UI_POLL_MS = 4000;
 
 ServiceController::ServiceController(QObject *parent)
@@ -22,8 +20,6 @@ ServiceController::ServiceController(QObject *parent)
       m_invoke(new bb::system::InvokeManager(this)),
       m_active(false), m_sessionDead(false), m_lastUiAlive(false)
 {
-    // Lúc service chạy thì app UI không foreground: để sendBannerNotification()
-    // bỏ qua dialog, chỉ còn Hub item (đã tự phát âm/banner).
     m_svc->setAppForeground(false);
 
     connect(m_svc, SIGNAL(sessionExpired()), this, SLOT(onSessionExpired()));
@@ -32,7 +28,6 @@ ServiceController::ServiceController(QObject *parent)
     connect(m_poll, SIGNAL(timeout()), this, SLOT(onPollTimer()));
     m_poll->start(UI_POLL_MS);
 
-    // Nhịp sống: 2 phút/lần ghi trạng thái ra log. Mất nhịp = process đã chết/treo.
     connect(m_heartbeat, SIGNAL(timeout()), this, SLOT(onHeartbeat()));
     m_heartbeat->start(120000);
     connect(QCoreApplication::instance(), SIGNAL(aboutToQuit()), this, SLOT(onAboutToQuit()));
@@ -43,18 +38,11 @@ ServiceController::ServiceController(QObject *parent)
 
 void ServiceController::onInvoked(const bb::system::InvokeRequest &request)
 {
-    qDebug() << "[Service] invoked, action =" << request.action();
 
-    // ===== Hub -> service (account target = service) =====
-    // Mọi invoke của Hub (short-tap, long-press, select more, nút Delete) giờ
-    // đều tới service để các lệnh item xử lý NỀN, không bật UI lên.
-    //  - Mark read/unread, Delete: xử lý ngay tại service.
-    //  - Open/View (chạm mở tin): chuyển tiếp nguyên vẹn sang UI.
     if (HubIntegration::isItemAction(request.action())) {
         QVariantMap attrs = jsonToMap(request.data()).value("attributes").toMap();
         QString threadId = attrs.value("sourceId").toString();
         if (threadId.isEmpty()) threadId = attrs.value("messageid").toString();
-        qDebug() << "[Service] hub item action" << request.action() << "thread=" << threadId;
         m_svc->handleHubAction(request.action(), threadId);
         return;
     }
@@ -67,10 +55,9 @@ void ServiceController::onInvoked(const bb::system::InvokeRequest &request)
         fwd.setUri(request.uri());
         fwd.setData(request.data());
         m_invoke->invoke(fwd);
-        qDebug() << "[Service] forwarded" << request.action() << "to UI";
         return;
     }
-    evaluate(); // STARTED / UI_OPENED / UI_CLOSED đều chỉ cần đánh giá lại trạng thái
+    evaluate();
 }
 
 void ServiceController::onPollTimer() { evaluate(); }
@@ -90,8 +77,7 @@ void ServiceController::onAboutToQuit()
 
 void ServiceController::onSessionExpired()
 {
-    // Headless không có UI để hiện màn QR: đứng yên, chờ user mở app đăng nhập lại.
-    qDebug() << "[Service] session expired - idle until user logs in via the app";
+    qWarning() << "[Service] session expired - idle until user logs in via the app";
     m_sessionDead = true;
     if (m_active) { m_svc->suspendRealtime(); m_active = false; }
 }
@@ -100,7 +86,6 @@ void ServiceController::evaluate()
 {
     bool ui = ServiceHandoff::isUiAlive();
 
-    // UI vừa đóng -> có thể user đã đăng nhập lại trong lúc UI chạy: cho phép thử lại.
     if (m_lastUiAlive && !ui) m_sessionDead = false;
     m_lastUiAlive = ui;
 
@@ -117,9 +102,7 @@ void ServiceController::evaluate()
 
     qDebug() << "[Service] UI not running -> taking WebSocket";
     m_active = true;
-    qDebug() << "[Service] calling resumeRealtime()";
     bool resumed = m_svc->resumeRealtime();
-    qDebug() << "[Service] resumeRealtime() returned" << resumed;
     if (!resumed) {
         qDebug() << "[Service] no saved session - idle";
         m_active = false;
