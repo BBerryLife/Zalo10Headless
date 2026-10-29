@@ -9,6 +9,11 @@ QT += network script gui
 
 UI_SRC = ../Zalo10/src
 
+# ZaloService is split across core/<area>/ in Zalo10 (auth, contacts, db, messages, network,
+# phonesync, websocket). Those folders are globbed so new files added there are picked up
+# automatically. ZaloService_ContactPicker.cpp (Cascades) is deliberately NOT included: the
+# headless build uses src/core/ContactPickerStub.cpp instead.
+
 LIBS += -lbbsystem -lbb -lbbplatform -lbbdevice -lbbpim -lunifieddatasourcec
 LIBS += -lQtNetwork -lQtScript -lQtGui
 LIBS += -lssl -lcrypto -lsqlite3
@@ -39,15 +44,15 @@ SOURCES += \
     src/core/ServiceController.cpp \
     src/core/ContactPickerStub.cpp \
     $$UI_SRC/core/ZaloService.cpp \
-    $$UI_SRC/core/ZaloService_Auth.cpp \
-    $$UI_SRC/core/ZaloService_WebSocket.cpp \
-    $$UI_SRC/core/ZaloService_Contacts.cpp \
-    $$UI_SRC/core/ZaloService_Messages.cpp \
     $$UI_SRC/core/ZaloService_Crypto.cpp \
-    $$UI_SRC/core/ZaloService_Network.cpp \
-    $$UI_SRC/core/ZaloService_Db.cpp \
     $$UI_SRC/core/ZaloService_Sync.cpp \
-    $$UI_SRC/core/ZaloService_PhoneSync.cpp \
+    $$files($$UI_SRC/core/auth/*.cpp) \
+    $$files($$UI_SRC/core/contacts/*.cpp) \
+    $$files($$UI_SRC/core/db/*.cpp) \
+    $$files($$UI_SRC/core/messages/*.cpp) \
+    $$files($$UI_SRC/core/network/*.cpp) \
+    $$files($$UI_SRC/core/phonesync/*.cpp) \
+    $$files($$UI_SRC/core/websocket/*.cpp) \
     $$UI_SRC/core/PhoneSyncCore.cpp \
     $$UI_SRC/third_party/xz/xz_crc32.c \
     $$UI_SRC/third_party/xz/xz_crc64.c \
