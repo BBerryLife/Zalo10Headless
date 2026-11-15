@@ -16,7 +16,21 @@ UI_SRC = ../Zalo10/src
 
 LIBS += -lbbsystem -lbb -lbbplatform -lbbdevice -lbbpim -lunifieddatasourcec
 LIBS += -lQtNetwork -lQtScript -lQtGui
-LIBS += -lssl -lcrypto -lsqlite3
+LIBS += -lsqlite3
+# Bundled OpenSSL 1.1.1w (static), shared with Zalo10: the system headers/libs are 1.0.x and lack
+# TLS_client_method/SSL_CTX_set_min_proto_version used by the shared Zalo10 sources.
+simulator {
+    INCLUDEPATH += $$PWD/$$UI_SRC/third_party/prebuilt/simulator/openssl/include
+    LIBS += $$PWD/$$UI_SRC/third_party/prebuilt/simulator/openssl/lib/libssl.a
+    LIBS += $$PWD/$$UI_SRC/third_party/prebuilt/simulator/openssl/lib/libcrypto.a
+    QMAKE_LFLAGS += -Wl,--exclude-libs,ALL
+}
+device {
+    INCLUDEPATH += $$PWD/$$UI_SRC/third_party/prebuilt/device/openssl/include
+    LIBS += $$PWD/$$UI_SRC/third_party/prebuilt/device/openssl/lib/libssl.a
+    LIBS += $$PWD/$$UI_SRC/third_party/prebuilt/device/openssl/lib/libcrypto.a
+    QMAKE_LFLAGS += -Wl,--exclude-libs,ALL
+}
 LIBS += -lsocket   # POSIX sockets used directly by PhoneSyncCore::httpsGet
 # zlib must be explicit: ZaloService_WebSocket.cpp uses inflate*/deflate*, and the service
 # doesn't link Cascades (which provides libz for the UI).
