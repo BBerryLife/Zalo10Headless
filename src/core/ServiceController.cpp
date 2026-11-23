@@ -7,6 +7,7 @@
 #include <bb/system/InvokeManager>
 #include <bb/system/InvokeRequest>
 #include <QTimer>
+#include <QSettings>
 #include <QCoreApplication>
 #include <QDebug>
 
@@ -48,9 +49,21 @@ void ServiceController::onInvoked(const bb::system::InvokeRequest &request)
     }
     if (request.action() == QLatin1String("bb.action.OPEN")
         || request.action() == QLatin1String("bb.action.VIEW")) {
+        // Hub tap. With "Reply Card in Hub" on (Zalo10 Settings > Notifications, default on) a chat item opens the
+        // reply card over the Hub; otherwise, and for the Feeds item, the app itself. The setting is the one the UI
+        // writes, shared through the same QSettings file.
+        const QString feedId = QString::fromLatin1(HubIntegration::FEED_ITEM_ID);
+        const bool isFeed = QString::fromUtf8(request.data()).contains(feedId)
+                            || request.uri().toString().contains(feedId);
+        QSettings st("BerryLife", "Zalo10");
+        st.sync();
+        const bool card = !isFeed && st.value("hubChatSheet", true).toBool();
+        qDebug() << "[Service] Hub tap action=" << request.action() << "feed=" << isFeed << "card=" << card;
+
         bb::system::InvokeRequest fwd;
-        fwd.setTarget("com.BerryLife.Zalo10.invoke");
-        fwd.setAction(request.action());
+        fwd.setTarget(card ? "com.BerryLife.Zalo10.reply" : "com.BerryLife.Zalo10.invoke");
+        // The app target only takes OPEN (bb-descriptor): the Hub's VIEW is the card's.
+        fwd.setAction(card ? "bb.action.REPLY" : "bb.action.OPEN");
         fwd.setMimeType(request.mimeType());
         fwd.setUri(request.uri());
         fwd.setData(request.data());
