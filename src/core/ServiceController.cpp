@@ -3,12 +3,15 @@
 #include "core/ServiceHandoff.hpp"
 #include "core/HubIntegration.hpp"
 #include "utils/ZaloServiceUtils.hpp"
+#include "utils/json/ZaloMessageJson.hpp"
 
 #include <bb/system/InvokeManager>
 #include <bb/system/InvokeRequest>
 #include <bb/system/InvokeTargetReply>
 #include <QTimer>
 #include <QCoreApplication>
+#include <QDateTime>
+#include <QUrl>
 #include <QDebug>
 
 static const int UI_POLL_MS = 4000;
@@ -19,11 +22,12 @@ ServiceController::ServiceController(QObject *parent)
       m_poll(new QTimer(this)),
       m_heartbeat(new QTimer(this)),
       m_invoke(new bb::system::InvokeManager(this)),
-      m_active(false), m_sessionDead(false), m_lastUiAlive(false)
+      m_active(false), m_sessionDead(false), m_lastUiAlive(false), m_lastCallLaunchMs(0)
 {
     m_svc->setAppForeground(false);
 
     connect(m_svc, SIGNAL(sessionExpired()), this, SLOT(onSessionExpired()));
+    connect(m_svc, SIGNAL(voiceCallControl(QVariantMap)), this, SLOT(onVoiceCallControl(QVariantMap)));
     connect(m_invoke, SIGNAL(invoked(const bb::system::InvokeRequest&)),
             this,     SLOT(onInvoked(const bb::system::InvokeRequest&)));
     connect(m_poll, SIGNAL(timeout()), this, SLOT(onPollTimer()));
@@ -73,6 +77,29 @@ void ServiceController::onInvoked(const bb::system::InvokeRequest &request)
 }
 
 void ServiceController::onPollTimer() { evaluate(); }
+
+// Incoming call while the app is closed: the service holds the WebSocket, so it is the one that sees the call
+// "request". It opens the app and passes the frame along; the app (call screen + voice engine) takes it from there.
+void ServiceController::onVoiceCallControl(const QVariantMap &content)
+{
+    if (content.value("act").toString() != QLatin1String("request")) return;
+    if (ServiceHandoff::isUiAlive()) return;
+
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (m_lastCallLaunchMs > 0 && now - m_lastCallLaunchMs < 5000) return;
+    m_lastCallLaunchMs = now;
+
+    qDebug() << "[Service] incoming call while the app is closed -> opening the app";
+    bb::system::InvokeRequest req;
+    req.setTarget("com.BerryLife.Zalo10.invoke");
+    req.setAction("bb.action.OPEN");
+    req.setMimeType("application/vnd.zalo10.hub.chat");
+    req.setUri(QUrl("pim:application/vnd.zalo10.hub.chat"));
+    req.setData(QByteArray("zalo10:call|") + variantToJsonCompact(QVariant(content)));
+    bb::system::InvokeTargetReply *reply = m_invoke->invoke(req);
+    if (reply) connect(reply, SIGNAL(finished()), reply, SLOT(deleteLater()));
+    else qWarning() << "[Service] could not open the app for the call";
+}
 
 void ServiceController::onHeartbeat()
 {

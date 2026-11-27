@@ -2,6 +2,7 @@
 #define SERVICECONTROLLER_HPP
 
 #include <QObject>
+#include <QVariantMap>
 
 class QTimer;
 class ZaloService;
@@ -20,6 +21,7 @@ private slots:
     void onSessionExpired();
     void onHeartbeat();
     void onAboutToQuit();
+    void onVoiceCallControl(const QVariantMap &content);
 
 private:
     void evaluate();
@@ -31,6 +33,7 @@ private:
     bool m_active;
     bool m_sessionDead;
     bool m_lastUiAlive;
+    qint64 m_lastCallLaunchMs;
 };
 
 #endif
