@@ -22,6 +22,12 @@ private slots:
     void onHeartbeat();
     void onAboutToQuit();
     void onVoiceCallControl(const QVariantMap &content);
+    void onCallInvokeFinished();
+
+private:
+    void openAppForCall(const QByteArray &data);
+
+private slots:
 
 private:
     void evaluate();

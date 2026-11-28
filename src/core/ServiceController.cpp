@@ -51,6 +51,13 @@ void ServiceController::onInvoked(const bb::system::InvokeRequest &request)
         m_svc->handleHubAction(request.action(), threadId);
         return;
     }
+    if (request.action() == QLatin1String("com.BerryLife.Zalo10.service.OPEN_UI")) {
+        // The app (minimized, incoming call) cannot bring itself forward: it asks here, and this OPEN comes from
+        // another process, like a Hub tap.
+        qDebug() << "[Service] OPEN_UI -> bringing the app to the front";
+        openAppForCall(QByteArray("zalo10:call"));
+        return;
+    }
     if (request.action() == QLatin1String("bb.action.OPEN")
         || request.action() == QLatin1String("bb.action.VIEW")) {
         // Hub tap. The service has no window, so it cannot show the reply card itself: it always hands the tap to the
@@ -90,15 +97,28 @@ void ServiceController::onVoiceCallControl(const QVariantMap &content)
     m_lastCallLaunchMs = now;
 
     qDebug() << "[Service] incoming call while the app is closed -> opening the app";
+    openAppForCall(QByteArray("zalo10:call|") + variantToJsonCompact(QVariant(content)));
+}
+
+// Same shape as the Hub-tap forward above (mime, no uri), which is known to reach the app.
+void ServiceController::openAppForCall(const QByteArray &data)
+{
     bb::system::InvokeRequest req;
     req.setTarget("com.BerryLife.Zalo10.invoke");
     req.setAction("bb.action.OPEN");
     req.setMimeType("application/vnd.zalo10.hub.chat");
-    req.setUri(QUrl("pim:application/vnd.zalo10.hub.chat"));
-    req.setData(QByteArray("zalo10:call|") + variantToJsonCompact(QVariant(content)));
+    req.setData(data);
     bb::system::InvokeTargetReply *reply = m_invoke->invoke(req);
-    if (reply) connect(reply, SIGNAL(finished()), reply, SLOT(deleteLater()));
+    if (reply) connect(reply, SIGNAL(finished()), this, SLOT(onCallInvokeFinished()));
     else qWarning() << "[Service] could not open the app for the call";
+}
+
+void ServiceController::onCallInvokeFinished()
+{
+    bb::system::InvokeTargetReply *reply = qobject_cast<bb::system::InvokeTargetReply*>(sender());
+    if (!reply) return;
+    qDebug() << "[Service] open-app-for-call reply error=" << (int)reply->error();
+    reply->deleteLater();
 }
 
 void ServiceController::onHeartbeat()
