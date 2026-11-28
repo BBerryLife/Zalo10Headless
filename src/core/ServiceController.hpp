@@ -5,6 +5,7 @@
 #include <QVariantMap>
 
 class QTimer;
+class QLocalServer;
 class ZaloService;
 namespace bb { namespace system { class InvokeManager; class InvokeRequest; } }
 
@@ -23,9 +24,11 @@ private slots:
     void onAboutToQuit();
     void onVoiceCallControl(const QVariantMap &content);
     void onCallInvokeFinished();
+    void onCmdConnection();
+    void onCmdReadyRead();
 
 private:
-    void openAppForCall(const QByteArray &data);
+    void openAppForCall(const QByteArray &data, int attempt = 0);
 
 private slots:
 
@@ -40,6 +43,7 @@ private:
     bool m_sessionDead;
     bool m_lastUiAlive;
     qint64 m_lastCallLaunchMs;
+    QLocalServer *m_cmdServer;
 };
 
 #endif

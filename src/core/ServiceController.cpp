@@ -11,6 +11,8 @@
 #include <QTimer>
 #include <QCoreApplication>
 #include <QDateTime>
+#include <QLocalServer>
+#include <QLocalSocket>
 #include <QUrl>
 #include <QDebug>
 
@@ -22,12 +24,20 @@ ServiceController::ServiceController(QObject *parent)
       m_poll(new QTimer(this)),
       m_heartbeat(new QTimer(this)),
       m_invoke(new bb::system::InvokeManager(this)),
-      m_active(false), m_sessionDead(false), m_lastUiAlive(false), m_lastCallLaunchMs(0)
+      m_active(false), m_sessionDead(false), m_lastUiAlive(false), m_lastCallLaunchMs(0), m_cmdServer(new QLocalServer(this))
 {
     m_svc->setAppForeground(false);
 
     connect(m_svc, SIGNAL(sessionExpired()), this, SLOT(onSessionExpired()));
     connect(m_svc, SIGNAL(voiceCallControl(QVariantMap)), this, SLOT(onVoiceCallControl(QVariantMap)));
+
+    // The UI cannot reach this service with an invoke from the background (BadRequest), so it talks to it over
+    // a local socket: "open_ui" = bring the app to the front for an incoming call.
+    QLocalServer::removeServer(ServiceHandoff::cmdSocketPath());
+    if (m_cmdServer->listen(ServiceHandoff::cmdSocketPath()))
+        connect(m_cmdServer, SIGNAL(newConnection()), this, SLOT(onCmdConnection()));
+    else
+        qWarning() << "[Service] cannot listen on" << ServiceHandoff::cmdSocketPath() << m_cmdServer->errorString();
     connect(m_invoke, SIGNAL(invoked(const bb::system::InvokeRequest&)),
             this,     SLOT(onInvoked(const bb::system::InvokeRequest&)));
     connect(m_poll, SIGNAL(timeout()), this, SLOT(onPollTimer()));
@@ -100,25 +110,57 @@ void ServiceController::onVoiceCallControl(const QVariantMap &content)
     openAppForCall(QByteArray("zalo10:call|") + variantToJsonCompact(QVariant(content)));
 }
 
-// Same shape as the Hub-tap forward above (mime, no uri), which is known to reach the app.
-void ServiceController::openAppForCall(const QByteArray &data)
+// Opens the app on the call screen. Three request shapes are tried in turn (the next only if Navigator rejects
+// the previous one): mime + the pim: uri of the target's filter, mime only (the Hub-tap forward above), and a
+// bare OPEN. Each result is logged with its attempt number.
+void ServiceController::openAppForCall(const QByteArray &data, int attempt)
 {
     bb::system::InvokeRequest req;
     req.setTarget("com.BerryLife.Zalo10.invoke");
     req.setAction("bb.action.OPEN");
-    req.setMimeType("application/vnd.zalo10.hub.chat");
+    if (attempt < 2) {
+        req.setMimeType("application/vnd.zalo10.hub.chat");
+        if (attempt == 0) req.setUri(QUrl("pim:application/vnd.zalo10.hub.chat"));
+    }
     req.setData(data);
     bb::system::InvokeTargetReply *reply = m_invoke->invoke(req);
-    if (reply) connect(reply, SIGNAL(finished()), this, SLOT(onCallInvokeFinished()));
-    else qWarning() << "[Service] could not open the app for the call";
+    if (!reply) { qWarning() << "[Service] could not open the app for the call, attempt" << attempt; return; }
+    reply->setProperty("attempt", attempt);
+    reply->setProperty("data", data);
+    connect(reply, SIGNAL(finished()), this, SLOT(onCallInvokeFinished()));
+}
+
+void ServiceController::onCmdConnection()
+{
+    while (QLocalSocket *sock = m_cmdServer->nextPendingConnection()) {
+        connect(sock, SIGNAL(readyRead()), this, SLOT(onCmdReadyRead()));
+        connect(sock, SIGNAL(disconnected()), sock, SLOT(deleteLater()));
+        if (sock->bytesAvailable() > 0) QMetaObject::invokeMethod(this, "onCmdReadyRead", Qt::QueuedConnection);
+    }
+}
+
+void ServiceController::onCmdReadyRead()
+{
+    QLocalSocket *sock = qobject_cast<QLocalSocket *>(sender());
+    if (!sock) return;
+    const QByteArray data = sock->readAll();
+    if (data.startsWith("open_ui")) {
+        qDebug() << "[Service] open_ui request from the app -> bringing the app to the front";
+        openAppForCall(QByteArray("zalo10:call"));
+    }
+    sock->disconnectFromServer();
 }
 
 void ServiceController::onCallInvokeFinished()
 {
     bb::system::InvokeTargetReply *reply = qobject_cast<bb::system::InvokeTargetReply*>(sender());
     if (!reply) return;
-    qDebug() << "[Service] open-app-for-call reply error=" << (int)reply->error();
+    const int error = (int)reply->error();
+    const int attempt = reply->property("attempt").toInt();
+    const QByteArray data = reply->property("data").toByteArray();
+    qDebug() << "[Service] open-app-for-call reply error=" << error << "attempt" << attempt;
     reply->deleteLater();
+    if (error != 0 && attempt < 2) openAppForCall(data, attempt + 1);
 }
 
 void ServiceController::onHeartbeat()
